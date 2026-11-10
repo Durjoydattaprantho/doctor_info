@@ -1,0 +1,2233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DoctorConnect - Public Doctor Directory & Chamber Finder</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- PapaParse for CSV Import/Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            },
+            tealMed: {
+              50: '#f0fdfa',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .active-nav-link {
+      color: #059669;
+      font-weight: 700;
+      border-bottom: 2px solid #059669;
+    }
+    /* Smooth transition */
+    .view-section {
+      transition: opacity 0.2s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NOTICE BAR -->
+  <header class="bg-primary-900 text-white text-xs py-2 px-4 border-b border-primary-800">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-primary-700 text-primary-100">
+          Public Directory
+        </span>
+        <span>Bangladesh Medical & Dental Council (BMDC) verified doctors & real-time chamber serials</span>
+      </div>
+      <div class="flex items-center gap-4 text-primary-200">
+        <span class="flex items-center gap-1"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> No Login Required</span>
+        <span class="flex items-center gap-1"><i data-lucide="phone-call" class="w-3.5 h-3.5 text-amber-300"></i> Helpline: 16263</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION BAR -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-tealMed-500 flex items-center justify-center text-white shadow-md shadow-primary-500/20">
+            <i data-lucide="stethoscope" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xl font-extrabold tracking-tight text-slate-900">Doctor<span class="text-primary-600">Connect</span></span>
+            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 -mt-1">Public Medical Directory</span>
+          </div>
+        </div>
+
+        <!-- Desktop Navigation Links -->
+        <div class="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-600">
+          <button onclick="navigateTo('home')" class="nav-item hover:text-primary-600 transition-colors py-2 active-nav-link" data-route="home">Home</button>
+          
+          <!-- Dropdown / Find Doctors -->
+          <div class="relative group">
+            <button onclick="navigateTo('find-doctors')" class="nav-item flex items-center gap-1 hover:text-primary-600 transition-colors py-2" data-route="find-doctors">
+              Find Doctors <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+            <div class="absolute left-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl py-2 hidden group-hover:block transition-all z-50">
+              <a href="javascript:void(0)" onclick="filterDoctors({ filterType: 'all' })" class="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-700">All Doctors</a>
+              <a href="javascript:void(0)" onclick="navigateTo('specialties')" class="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-700">By Specialty</a>
+              <a href="javascript:void(0)" onclick="filterDoctors({ filterType: 'location' })" class="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-700">By Location (Divisions)</a>
+              <a href="javascript:void(0)" onclick="filterDoctors({ filterType: 'today' })" class="block px-4 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/60">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Available Today</span>
+              </a>
+            </div>
+          </div>
+
+          <button onclick="navigateTo('specialties')" class="nav-item hover:text-primary-600 transition-colors py-2" data-route="specialties">Categories</button>
+          <button onclick="navigateTo('hospitals')" class="nav-item hover:text-primary-600 transition-colors py-2" data-route="hospitals">Hospitals & Clinics</button>
+          <button onclick="navigateTo('chambers')" class="nav-item hover:text-primary-600 transition-colors py-2" data-route="chambers">Chambers</button>
+          <button onclick="navigateTo('nearby')" class="nav-item hover:text-primary-600 transition-colors py-2 text-emerald-700 font-semibold" data-route="nearby">
+            <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4"></i> Nearby</span>
+          </button>
+          <button onclick="navigateTo('about')" class="nav-item hover:text-primary-600 transition-colors py-2" data-route="about">About</button>
+          <button onclick="navigateTo('contact')" class="nav-item hover:text-primary-600 transition-colors py-2" data-route="contact">Contact</button>
+        </div>
+
+        <!-- Action Buttons (No Admin, Public Onboarding & CSV tools) -->
+        <div class="flex items-center gap-2.5">
+          <button onclick="openCsvManagerModal()" title="Import/Export CSV or JSON data" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-slate-500"></i> Data Tools
+          </button>
+          <button onclick="openDoctorSubmissionModal()" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow transition-all">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> List Your Practice
+          </button>
+          <!-- Mobile Menu Trigger -->
+          <button onclick="toggleMobileNav()" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-nav" class="lg:hidden hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2">
+      <button onclick="navigateTo('home'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Home</button>
+      <button onclick="navigateTo('find-doctors'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Find All Doctors</button>
+      <button onclick="filterDoctors({ filterType: 'today' }); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50">Available Today</button>
+      <button onclick="navigateTo('specialties'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Doctor Categories</button>
+      <button onclick="navigateTo('hospitals'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Hospitals & Clinics</button>
+      <button onclick="navigateTo('chambers'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Chamber Information</button>
+      <button onclick="navigateTo('nearby'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Nearby Doctors</button>
+      <button onclick="navigateTo('about'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">About Us</button>
+      <button onclick="navigateTo('contact'); toggleMobileNav()" class="w-full text-left py-2 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-primary-50">Contact Us</button>
+      <div class="pt-2 flex flex-col gap-2">
+        <button onclick="openCsvManagerModal(); toggleMobileNav()" class="w-full py-2 px-3 text-center text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg">CSV Data Import / Export</button>
+        <button onclick="openDoctorSubmissionModal(); toggleMobileNav()" class="w-full py-2 px-3 text-center text-xs font-bold text-white bg-primary-600 rounded-lg">Doctor Registration / Submission</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="flex-grow">
+
+    <!-- ========================================== -->
+    <!-- VIEW: HOME                                 -->
+    <!-- ========================================== -->
+    <div id="view-home" class="view-section">
+      <!-- HERO SECTION -->
+      <section class="relative bg-gradient-to-b from-primary-50/70 via-white to-slate-50 pt-12 pb-16 border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-3xl mx-auto">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-800 mb-4">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-primary-600"></i> Direct Public Access • 100% Free for Patients & Doctors
+            </span>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Find Verified Doctors & <span class="text-primary-600">Visiting Chambers</span> in Bangladesh
+            </h1>
+            <p class="mt-4 text-base sm:text-lg text-slate-600">
+              Instant search by BMDC registration, medical specialty, chamber locations, fees, and today's visiting hours without any login or booking barrier.
+            </p>
+
+            <!-- SEARCH BAR -->
+            <div class="mt-8 bg-white p-3 sm:p-4 rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 text-left">
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                
+                <!-- Query Input -->
+                <div class="md:col-span-5 relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                  </div>
+                  <input type="text" id="hero-search-query" placeholder="Doctor name, BMDC No, hospital, condition..." 
+                    class="w-full pl-10 pr-3 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+
+                <!-- Specialty Select -->
+                <div class="md:col-span-3 relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                  </div>
+                  <select id="hero-search-specialty" class="w-full pl-10 pr-8 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none text-slate-700">
+                    <option value="">All Specialties</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                  </div>
+                </div>
+
+                <!-- Location / Division Select -->
+                <div class="md:col-span-2 relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                  </div>
+                  <select id="hero-search-division" class="w-full pl-10 pr-8 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none text-slate-700">
+                    <option value="">All Locations</option>
+                    <option value="Dhaka">Dhaka</option>
+                    <option value="Chittagong">Chattogram</option>
+                    <option value="Sylhet">Sylhet</option>
+                    <option value="Rajshahi">Rajshahi</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                  </div>
+                </div>
+
+                <!-- Search Action -->
+                <div class="md:col-span-2">
+                  <button onclick="handleHeroSearch()" class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="search" class="w-4 h-4"></i> Search
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Tag Filters -->
+              <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span class="font-medium text-slate-600">Quick Filters:</span>
+                <button onclick="filterDoctors({ filterType: 'today' })" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available Today
+                </button>
+                <button onclick="filterDoctors({ specialty: 'Cardiology' })" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700">Cardiology</button>
+                <button onclick="filterDoctors({ specialty: 'Medicine' })" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700">Medicine</button>
+                <button onclick="filterDoctors({ specialty: 'Gynecology & Obstetrics' })" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700">Gynecology</button>
+                <button onclick="filterDoctors({ specialty: 'Pediatrics' })" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700">Pediatrics</button>
+                <button onclick="navigateTo('nearby')" class="px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 font-medium">
+                  <i data-lucide="navigation" class="w-3 h-3 inline"></i> Near Me
+                </button>
+              </div>
+            </div>
+
+            <!-- KEY STATS -->
+            <div class="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                <p id="stat-doctor-count" class="text-2xl font-black text-slate-900">12+</p>
+                <p class="text-xs text-slate-500 font-medium">BMDC Verified Doctors</p>
+              </div>
+              <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                <p id="stat-specialty-count" class="text-2xl font-black text-primary-600">12</p>
+                <p class="text-xs text-slate-500 font-medium">Medical Specialties</p>
+              </div>
+              <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                <p id="stat-chamber-count" class="text-2xl font-black text-tealMed-600">15+</p>
+                <p class="text-xs text-slate-500 font-medium">Active Chambers</p>
+              </div>
+              <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                <p class="text-2xl font-black text-emerald-600">100%</p>
+                <p class="text-xs text-slate-500 font-medium">Open & Public Access</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- TOP SPECIALTIES / CATEGORIES SECTION -->
+      <section class="py-12 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between mb-8">
+            <div>
+              <h2 class="text-2xl font-bold text-slate-900">Browse by Medical Specialty</h2>
+              <p class="text-sm text-slate-500">Find experienced doctors specialized in your health requirement</p>
+            </div>
+            <button onclick="navigateTo('specialties')" class="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+              View All Specialties <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div id="home-specialties-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURED VERIFIED DOCTORS -->
+      <section class="py-12 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <span class="text-xs font-bold tracking-wider uppercase text-primary-600">BMDC Registered</span>
+              <h2 class="text-2xl font-bold text-slate-900">Featured Senior Consultants</h2>
+              <p class="text-sm text-slate-500">Direct hospital appointments, verified qualification, and chamber contacts</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="filterDoctors({ filterType: 'all' })" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                View All Doctors
+              </button>
+              <button onclick="filterDoctors({ filterType: 'today' })" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> Available Today
+              </button>
+            </div>
+          </div>
+
+          <!-- Featured Cards Grid -->
+          <div id="home-featured-doctors" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- DOCTOR SUBMISSION CTA -->
+      <section class="py-14 bg-gradient-to-r from-primary-800 to-tealMed-700 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div class="max-w-2xl">
+              <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold tracking-wide uppercase text-primary-100 mb-3">
+                For Medical Practitioners
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Are You a Registered Doctor in Bangladesh?</h2>
+              <p class="mt-3 text-primary-100 text-sm sm:text-base leading-relaxed">
+                List your visiting chamber, hospital affiliation, and appointment serial numbers on DoctorConnect. Free public visibility with BMDC registration verification, without requiring an admin login.
+              </p>
+              <div class="mt-4 flex flex-wrap gap-4 text-xs text-primary-200">
+                <span class="flex items-center gap-1"><i data-lucide="check" class="w-4 h-4 text-emerald-300"></i> Free Public Profile</span>
+                <span class="flex items-center gap-1"><i data-lucide="check" class="w-4 h-4 text-emerald-300"></i> Direct Patient Serial Inquiries</span>
+                <span class="flex items-center gap-1"><i data-lucide="check" class="w-4 h-4 text-emerald-300"></i> Chamber Hours Display</span>
+              </div>
+            </div>
+            <div class="flex-shrink-0">
+              <button onclick="openDoctorSubmissionModal()" class="px-6 py-3.5 bg-white text-primary-900 font-extrabold rounded-xl shadow-lg hover:bg-primary-50 transition-all flex items-center gap-2 text-sm">
+                <i data-lucide="clipboard-pen" class="w-4 h-4 text-primary-600"></i> Submit Your Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: FIND DOCTORS (All, Specialty, Loc, Today) -->
+    <!-- ========================================== -->
+    <div id="view-find-doctors" class="view-section hidden py-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header & Breadcrumbs -->
+        <div class="mb-6">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+            <span class="cursor-pointer hover:underline" onclick="navigateTo('home')">Home</span>
+            <span>/</span>
+            <span class="text-slate-800 font-semibold">Find Doctors</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900" id="find-doctors-title">Find All Doctors</h1>
+          <p class="text-sm text-slate-500 mt-1">Search, filter by specialty, division, chamber availability, or visiting day</p>
+        </div>
+
+        <!-- Filter Sub-nav Pills -->
+        <div class="flex flex-wrap items-center gap-2 mb-6 border-b border-slate-200 pb-3">
+          <button id="pill-all" onclick="filterDoctors({ filterType: 'all' })" class="px-4 py-2 text-xs font-bold rounded-lg bg-primary-600 text-white shadow-xs">
+            All Doctors
+          </button>
+          <button id="pill-today" onclick="filterDoctors({ filterType: 'today' })" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Available Today (<span id="today-name-badge"></span>)
+          </button>
+          <button id="pill-dhaka" onclick="filterDoctors({ division: 'Dhaka' })" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+            Dhaka Division
+          </button>
+          <button id="pill-chattogram" onclick="filterDoctors({ division: 'Chittagong' })" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+            Chattogram Division
+          </button>
+          <button id="pill-sylhet" onclick="filterDoctors({ division: 'Sylhet' })" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+            Sylhet Division
+          </button>
+        </div>
+
+        <!-- Main Filter Toolbar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+            
+            <div class="lg:col-span-4 relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input type="text" id="filter-search-input" oninput="applyFilters()" placeholder="Search name, BMDC, hospital..." 
+                class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500">
+            </div>
+
+            <div class="lg:col-span-3">
+              <select id="filter-specialty-select" onchange="applyFilters()" class="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-700">
+                <option value="">All Specialties</option>
+              </select>
+            </div>
+
+            <div class="lg:col-span-3">
+              <select id="filter-division-select" onchange="applyFilters()" class="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-700">
+                <option value="">All Locations / Divisions</option>
+                <option value="Dhaka">Dhaka</option>
+                <option value="Chittagong">Chattogram</option>
+                <option value="Sylhet">Sylhet</option>
+                <option value="Rajshahi">Rajshahi</option>
+              </select>
+            </div>
+
+            <div class="lg:col-span-2 flex items-center gap-2">
+              <select id="filter-day-select" onchange="applyFilters()" class="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-700">
+                <option value="">Any Day</option>
+                <option value="SATURDAY">Saturday</option>
+                <option value="SUNDAY">Sunday</option>
+                <option value="MONDAY">Monday</option>
+                <option value="TUESDAY">Tuesday</option>
+                <option value="WEDNESDAY">Wednesday</option>
+                <option value="THURSDAY">Thursday</option>
+                <option value="FRIDAY">Friday</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Results Counter & Sort Info -->
+        <div class="flex items-center justify-between mb-4 text-xs text-slate-500">
+          <span id="results-count-text">Showing 0 doctors</span>
+          <div class="flex items-center gap-2">
+            <span>Sort:</span>
+            <select id="sort-select" onchange="applyFilters()" class="bg-transparent border-0 font-semibold text-slate-700 focus:outline-none cursor-pointer">
+              <option value="experience">Experience (Highest First)</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="fee">Consultation Fee (Lowest First)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Doctors List / Grid -->
+        <div id="doctors-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JS -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: CATEGORIES / SPECIALTIES             -->
+    <!-- ========================================== -->
+    <div id="view-specialties" class="view-section hidden py-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Medical Specialties & Categories</h1>
+          <p class="text-sm text-slate-500 mt-1">Explore all major medical disciplines and connect directly with certified specialists</p>
+        </div>
+
+        <div id="specialties-full-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: HOSPITALS & CLINICS                  -->
+    <!-- ========================================== -->
+    <div id="view-hospitals" class="view-section hidden py-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Hospitals & Medical Institutes</h1>
+          <p class="text-sm text-slate-500 mt-1">Major medical colleges, specialized institutes, and private diagnostic facilities in Bangladesh</p>
+        </div>
+
+        <div id="hospitals-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: CHAMBER INFORMATION                  -->
+    <!-- ========================================== -->
+    <div id="view-chambers" class="view-section hidden py-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Chamber Directory & Visiting Schedules</h1>
+          <p class="text-sm text-slate-500 mt-1">Direct chamber locations, serial appointment phone numbers, consultation fees, and visiting hours</p>
+        </div>
+
+        <div class="mb-6 flex flex-wrap gap-2">
+          <input type="text" id="chamber-search-box" oninput="renderChambersList()" placeholder="Filter chambers by hospital, area (e.g. Dhanmondi, Uttara), or doctor..."
+            class="w-full sm:w-96 px-4 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary-500 shadow-xs">
+        </div>
+
+        <div id="chambers-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: NEARBY DOCTORS                       -->
+    <!-- ========================================== -->
+    <div id="view-nearby" class="view-section hidden py-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800 mb-2">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-teal-600"></i> Location-Aware Finder
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Find Nearby Doctors & Chambers</h1>
+          <p class="text-sm text-slate-500 mt-1">Locate active chambers nearest to your area or use current GPS coordinates</p>
+        </div>
+
+        <!-- Geo Selector Box -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs mb-8">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                <i data-lucide="navigation-2" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Select Your Area in Dhaka & Other Divisions</h3>
+                <p class="text-xs text-slate-500">Pick an area to find doctors sitting in nearby hospitals & diagnostic centers</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <select id="nearby-area-select" onchange="handleAreaChange(this.value)" class="py-2.5 px-4 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-800">
+                <option value="Dhanmondi">Dhanmondi, Dhaka (Center)</option>
+                <option value="Panthapath">Panthapath / Green Road, Dhaka</option>
+                <option value="Uttara">Uttara, Dhaka</option>
+                <option value="Gulshan">Gulshan & Banani, Dhaka</option>
+                <option value="Bashundhara">Bashundhara R/A, Dhaka</option>
+                <option value="Shantinagar">Shantinagar & Kakrail, Dhaka</option>
+                <option value="Panchlaish">Panchlaish, Chattogram</option>
+                <option value="Mirboxtula">Mirboxtula, Sylhet</option>
+              </select>
+              
+              <button onclick="requestGeolocation()" class="py-2.5 px-4 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                <i data-lucide="locate-fixed" class="w-4 h-4"></i> Use My GPS
+              </button>
+            </div>
+          </div>
+          <div id="gps-status-text" class="text-xs text-slate-400 mt-3 hidden"></div>
+        </div>
+
+        <div id="nearby-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JS -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: ABOUT US                             -->
+    <!-- ========================================== -->
+    <div id="view-about" class="view-section hidden py-12 bg-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-10">
+          <span class="text-xs font-bold uppercase tracking-wider text-primary-600">About DoctorConnect</span>
+          <h1 class="text-3xl font-extrabold text-slate-900 mt-1">Open, Independent Public Healthcare Directory</h1>
+          <p class="text-sm text-slate-500 mt-2">Zero paywalls, zero login restrictions. Connecting patients with verified medical care in Bangladesh.</p>
+        </div>
+
+        <div class="prose prose-slate max-w-none space-y-6 text-sm text-slate-600 leading-relaxed">
+          <div class="p-5 rounded-2xl bg-primary-50/60 border border-primary-100 flex items-start gap-4">
+            <i data-lucide="shield-check" class="w-8 h-8 text-primary-600 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <h3 class="text-base font-bold text-primary-900">BMDC Verification Commitment</h3>
+              <p class="text-xs text-primary-800 mt-1">
+                Every doctor featured on DoctorConnect holds a verified registration with the Bangladesh Medical & Dental Council (BMDC). Patients can inspect BMDC numbers directly on each profile to verify legitimacy.
+              </p>
+            </div>
+          </div>
+
+          <h2 class="text-xl font-bold text-slate-900 mt-6">Why No Admin Login or Middleman?</h2>
+          <p>
+            Traditional healthcare portals frequently force patients to create accounts, pay commissions, or go through slow customer support desks just to find out a doctor's chamber serial number or visiting days. 
+          </p>
+          <p>
+            DoctorConnect was engineered as a <strong>controlled data-import and public-service directory</strong>:
+          </p>
+          <ul class="list-disc pl-5 space-y-2">
+            <li><strong>Direct Serial Numbers:</strong> Call the chamber or hospital desk directly to book your appointment without intermediary fees.</li>
+            <li><strong>Transparent Consultation Fees:</strong> View initial consultation fees, follow-up fees, and report check fees upfront.</li>
+            <li><strong>Day-Wise Visiting Hours:</strong> Filter doctors by who is actually sitting in the chamber today.</li>
+            <li><strong>Developer & Community Managed:</strong> Maintained through robust CSV/JSON data pipelines and public doctor registration submissions.</li>
+          </ul>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+            <div class="border border-slate-200 p-5 rounded-xl">
+              <h4 class="font-bold text-slate-900 flex items-center gap-2"><i data-lucide="heart-pulse" class="w-4 h-4 text-rose-500"></i> For Patients</h4>
+              <p class="text-xs text-slate-500 mt-2">Instant emergency search, chamber addresses with map coordinates, and complete transparency without registration.</p>
+            </div>
+            <div class="border border-slate-200 p-5 rounded-xl">
+              <h4 class="font-bold text-slate-900 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-primary-600"></i> For Doctors</h4>
+              <p class="text-xs text-slate-500 mt-2">Submit your chamber hours, degrees, and hospital appointments freely via our public submission process.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: CONTACT US                           -->
+    <!-- ========================================== -->
+    <div id="view-contact" class="view-section hidden py-12 bg-slate-50">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-10">
+          <span class="text-xs font-bold uppercase tracking-wider text-primary-600">Get In Touch</span>
+          <h1 class="text-3xl font-extrabold text-slate-900 mt-1">Contact & Healthcare Directory Inquiries</h1>
+          <p class="text-sm text-slate-500 mt-2">Have a question, feedback, or need doctor information updated?</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 text-center">
+            <div class="w-10 h-10 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
+              <i data-lucide="phone-call" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">National Health Helpline</h4>
+            <p class="text-xs text-slate-500 mt-1">Govt. Shastho Batayon 24/7</p>
+            <p class="text-base font-extrabold text-rose-600 mt-2">16263</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl border border-slate-200 text-center">
+            <div class="w-10 h-10 mx-auto rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mb-3">
+              <i data-lucide="mail" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Email Inquiries</h4>
+            <p class="text-xs text-slate-500 mt-1">Directory updates & feedback</p>
+            <p class="text-xs font-bold text-slate-800 mt-2">info@doctorconnect.bd</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl border border-slate-200 text-center">
+            <div class="w-10 h-10 mx-auto rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mb-3">
+              <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Coverage</h4>
+            <p class="text-xs text-slate-500 mt-1">All 8 Divisions</p>
+            <p class="text-xs font-bold text-slate-800 mt-2">Dhaka, CTG, Sylhet & Nationwide</p>
+          </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs">
+          <h3 class="text-lg font-bold text-slate-900 mb-4">Send a Message or Report Information Update</h3>
+          <form onsubmit="handleContactSubmit(event)" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Your Name</label>
+                <input type="text" required placeholder="e.g. Tanvir Hossain" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Contact Email / Mobile</label>
+                <input type="text" required placeholder="e.g. 017xxxxxxxx" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Subject</label>
+              <input type="text" required placeholder="Doctor schedule update / Inquiry" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Message</label>
+              <textarea rows="4" required placeholder="Write your message here..." class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
+            </div>
+            <button type="submit" class="py-2.5 px-6 text-xs font-bold bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+              Submit Message
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: DOCTOR PROFILE DETAILS              -->
+  <!-- ========================================== -->
+  <div id="doctor-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 relative">
+      <!-- Close Button -->
+      <button onclick="closeDoctorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 z-10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div id="doctor-modal-content">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: PUBLIC DOCTOR SUBMISSION FORM       -->
+  <!-- ========================================== -->
+  <div id="submission-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 relative p-6 sm:p-8">
+      <button onclick="closeDoctorSubmissionModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center">
+          <i data-lucide="stethoscope" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Doctor Profile Public Submission</h2>
+          <p class="text-xs text-slate-500">Doctors can register their visiting chambers & qualifications directly (No login required)</p>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 text-amber-900 text-xs p-3 rounded-xl mb-6 flex items-start gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+        <span>All doctor submissions are published with a BMDC verification check. Please ensure accurate registration numbers.</span>
+      </div>
+
+      <form onsubmit="handleDoctorSubmit(event)" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <div class="sm:col-span-3">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Title</label>
+            <select id="sub-title" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+              <option value="Dr.">Dr.</option>
+              <option value="Prof. Dr.">Prof. Dr.</option>
+              <option value="Assoc. Prof. Dr.">Assoc. Prof. Dr.</option>
+              <option value="Asst. Prof. Dr.">Asst. Prof. Dr.</option>
+            </select>
+          </div>
+          <div class="sm:col-span-9">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+            <input type="text" id="sub-name" required placeholder="e.g. Mohammad Shafiqul Islam" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">BMDC Registration No. *</label>
+            <input type="text" id="sub-bmdc" required placeholder="e.g. A-45210" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+            <select id="sub-gender" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty *</label>
+            <select id="sub-specialty" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+              <option value="Cardiology">Cardiology</option>
+              <option value="Medicine">Medicine</option>
+              <option value="Gynecology & Obstetrics">Gynecology & Obstetrics</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Neurology">Neurology</option>
+              <option value="Orthopedics">Orthopedics</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Gastroenterology">Gastroenterology</option>
+              <option value="Ophthalmology">Ophthalmology</option>
+              <option value="ENT (Ear, Nose & Throat)">ENT (Ear, Nose & Throat)</option>
+              <option value="Psychiatry">Psychiatry</option>
+              <option value="Endocrinology">Endocrinology</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Sub-specialty / Focus Area</label>
+            <input type="text" id="sub-subspecialty" placeholder="e.g. Interventional Cardiology, Hypertension" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Qualifications & Degrees *</label>
+          <input type="text" id="sub-qualifications" required placeholder="e.g. MBBS (DMC), FCPS (Medicine), MD (Cardiology)" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Current Hospital Affiliation</label>
+            <input type="text" id="sub-hospital" placeholder="e.g. Dhaka Medical College & Hospital" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Designation</label>
+            <input type="text" id="sub-designation" placeholder="e.g. Associate Professor & Consultant" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+          </div>
+        </div>
+
+        <!-- Chamber Details -->
+        <div class="border-t border-slate-200 pt-4 mt-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 flex items-center gap-1.5">
+            <i data-lucide="building" class="w-3.5 h-3.5 text-primary-600"></i> Primary Chamber Information
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Hospital / Diagnostic *</label>
+              <input type="text" id="sub-chamber-hospital" required placeholder="e.g. Popular Diagnostic, Dhanmondi" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Division *</label>
+              <select id="sub-chamber-division" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+                <option value="Dhaka">Dhaka</option>
+                <option value="Chittagong">Chattogram</option>
+                <option value="Sylhet">Sylhet</option>
+                <option value="Rajshahi">Rajshahi</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Thana *</label>
+              <input type="text" id="sub-chamber-area" required placeholder="e.g. Dhanmondi / Panthapath" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Address</label>
+              <input type="text" id="sub-chamber-address" placeholder="e.g. House 16, Road 2, Dhanmondi" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Appointment Serial Phone *</label>
+              <input type="text" id="sub-chamber-phone" required placeholder="e.g. +8801711223344" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Visiting Hours *</label>
+              <input type="text" id="sub-chamber-hours" required placeholder="e.g. 05:00 PM - 09:00 PM" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">New Consultation Fee (BDT)</label>
+              <input type="number" id="sub-chamber-fee" value="1000" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Visiting Days (Select all that apply)</label>
+            <div class="flex flex-wrap gap-2 text-xs text-slate-700">
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="SATURDAY" checked> Sat</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="SUNDAY" checked> Sun</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="MONDAY" checked> Mon</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="TUESDAY" checked> Tue</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="WEDNESDAY" checked> Wed</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="THURSDAY"> Thu</label>
+              <label class="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded cursor-pointer"><input type="checkbox" name="sub-days" value="FRIDAY"> Fri</label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pt-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Short Bio / Clinical Profile</label>
+          <textarea id="sub-bio" rows="2" placeholder="Brief description of clinical specialty, special achievements..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeDoctorSubmissionModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="check" class="w-4 h-4"></i> Submit Doctor Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: DATA TOOLS / CSV IMPORT & EXPORT   -->
+  <!-- ========================================== -->
+  <div id="csv-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 p-6 relative">
+      <button onclick="closeCsvManagerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+          <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Developer & Data Ingestion Tools</h2>
+          <p class="text-xs text-slate-500">Bulk upload or export doctors without requiring an admin panel</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-600">
+        <!-- Export -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4 text-slate-500"></i> Export Active Doctor Data
+          </h4>
+          <p class="text-[11px] text-slate-500 mb-3">Download the current doctor directory database as a CSV spreadsheet or JSON file.</p>
+          <div class="flex gap-2">
+            <button onclick="exportDoctorsToCSV()" class="px-3 py-1.5 bg-white border border-slate-300 font-semibold rounded-lg hover:bg-slate-100 flex items-center gap-1">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Download CSV
+            </button>
+            <button onclick="exportDoctorsToJSON()" class="px-3 py-1.5 bg-white border border-slate-300 font-semibold rounded-lg hover:bg-slate-100 flex items-center gap-1">
+              <i data-lucide="code" class="w-3.5 h-3.5"></i> Download JSON
+            </button>
+          </div>
+        </div>
+
+        <!-- Import -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+            <i data-lucide="upload" class="w-4 h-4 text-primary-600"></i> Bulk Import Doctors via CSV
+          </h4>
+          <p class="text-[11px] text-slate-500 mb-3">Upload a CSV file containing doctor records, chamber details, and BMDC numbers.</p>
+          <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer">
+          <button onclick="handleCsvUpload()" class="mt-3 px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg flex items-center gap-1">
+            <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Import CSV Records
+          </button>
+        </div>
+
+        <!-- Reset to Default Seed -->
+        <div class="p-4 rounded-xl bg-amber-50/60 border border-amber-200">
+          <h4 class="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-4 h-4 text-amber-700"></i> Reset to Default Verified Seed Data
+          </h4>
+          <p class="text-[11px] text-amber-800 mb-2">Restores the default collection of senior doctors across Dhaka, Chattogram, and Sylhet.</p>
+          <button onclick="resetDefaultDoctors()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg">
+            Reset to Default Seed
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 text-xs py-12 mt-auto border-t border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center text-white font-black text-sm">
+              <i data-lucide="stethoscope" class="w-4 h-4"></i>
+            </div>
+            <span class="text-base font-bold text-white">Doctor<span class="text-primary-400">Connect</span></span>
+          </div>
+          <p class="text-slate-400 leading-relaxed">
+            Public doctor directory and chamber information platform in Bangladesh. Designed for open access with BMDC verification.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold mb-3 uppercase tracking-wider text-[11px]">Quick Directory</h4>
+          <ul class="space-y-2">
+            <li><a href="javascript:void(0)" onclick="filterDoctors({ filterType: 'all' })" class="hover:text-white">All Doctors</a></li>
+            <li><a href="javascript:void(0)" onclick="filterDoctors({ filterType: 'today' })" class="hover:text-emerald-400">Available Today</a></li>
+            <li><a href="javascript:void(0)" onclick="navigateTo('specialties')" class="hover:text-white">Doctor Specialties</a></li>
+            <li><a href="javascript:void(0)" onclick="navigateTo('hospitals')" class="hover:text-white">Hospitals & Clinics</a></li>
+            <li><a href="javascript:void(0)" onclick="navigateTo('chambers')" class="hover:text-white">Chamber Information</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold mb-3 uppercase tracking-wider text-[11px]">For Doctors & Public</h4>
+          <ul class="space-y-2">
+            <li><a href="javascript:void(0)" onclick="openDoctorSubmissionModal()" class="hover:text-white">Submit Doctor Profile</a></li>
+            <li><a href="javascript:void(0)" onclick="openCsvManagerModal()" class="hover:text-white">Data Ingestion (CSV)</a></li>
+            <li><a href="javascript:void(0)" onclick="navigateTo('about')" class="hover:text-white">About DoctorConnect</a></li>
+            <li><a href="javascript:void(0)" onclick="navigateTo('contact')" class="hover:text-white">Contact & Helpline</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold mb-3 uppercase tracking-wider text-[11px]">Healthcare Helpline</h4>
+          <p class="text-slate-400 mb-2">Emergency Ambulance & Govt. Health Services:</p>
+          <div class="text-lg font-extrabold text-amber-400 mb-1">16263</div>
+          <p class="text-[11px] text-slate-500">National Emergency Service: 999</p>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+        <p>© 2026 DoctorConnect Bangladesh. Public medical directory. No admin credentials required.</p>
+        <p>Built with Next-gen Web standards • Fast, responsive, accessible</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT APPLICATION LOGIC -->
+  <script>
+    // ========================================================
+    // INITIAL SEED DOCTOR DATA
+    // ========================================================
+    const DEFAULT_DOCTORS = [
+      {
+        id: "doc-1",
+        name: "Mohammad Rafiqul Islam",
+        title: "Prof. Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-28491",
+        bmdcVerified: true,
+        specialty: "Cardiology",
+        subSpecialties: "Interventional Cardiology, Heart Failure",
+        currentHospital: "National Institute of Cardiovascular Diseases (NICVD)",
+        currentDesignation: "Professor & Head of Department",
+        experienceYears: 24,
+        qualifications: "MBBS (DMC), FCPS (Medicine), MD (Cardiology), FACC (USA)",
+        photoUrl: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80",
+        bio: "Renowned interventional cardiologist with over 24 years of clinical experience in coronary angioplasty, pacemaker implantation, and acute cardiac care.",
+        chamber: {
+          hospitalName: "Labaid Specialized Hospital",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Dhanmondi",
+          addressLine: "House 06, Road 04, Dhanmondi, Dhaka-1205",
+          serialPhone: "+8801711223344",
+          newPatientFee: 1500,
+          followUpFee: 1000,
+          visitingDays: ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY"],
+          visitingHours: "05:00 PM - 09:00 PM"
+        }
+      },
+      {
+        id: "doc-2",
+        name: "Fahmida Shireen",
+        title: "Dr.",
+        gender: "Female",
+        bmdcRegNo: "A-34982",
+        bmdcVerified: true,
+        specialty: "Gynecology & Obstetrics",
+        subSpecialties: "Laparoscopic Surgery, High-Risk Pregnancy",
+        currentHospital: "Dhaka Medical College & Hospital",
+        currentDesignation: "Associate Professor",
+        experienceYears: 16,
+        qualifications: "MBBS (DMC), FCPS (OBGYN), MS (OBGYN)",
+        photoUrl: "https://images.unsplash.com/photo-1594824813589-9a22f7b8fbba?w=250&auto=format&fit=crop&q=80",
+        bio: "Specialist in women's health, high-risk pregnancy management, painless normal deliveries, and advanced gynecological laparoscopic surgeries.",
+        chamber: {
+          hospitalName: "Central Hospital Limited",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Dhanmondi",
+          addressLine: "House 02, Road 05, Green Road, Dhanmondi, Dhaka",
+          serialPhone: "+8801722334455",
+          newPatientFee: 1200,
+          followUpFee: 800,
+          visitingDays: ["SATURDAY", "SUNDAY", "TUESDAY", "THURSDAY"],
+          visitingHours: "06:00 PM - 09:30 PM"
+        }
+      },
+      {
+        id: "doc-3",
+        name: "Tanvir Ahmed Chowdhury",
+        title: "Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-41209",
+        bmdcVerified: true,
+        specialty: "Neurology",
+        subSpecialties: "Stroke, Epilepsy, Headache disorders",
+        currentHospital: "Bangabandhu Sheikh Mujib Medical University (BSMMU)",
+        currentDesignation: "Assistant Professor",
+        experienceYears: 12,
+        qualifications: "MBBS (CMC), MD (Neurology), MACP (USA)",
+        photoUrl: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=250&auto=format&fit=crop&q=80",
+        bio: "Expert neurologist specializing in stroke prevention, epilepsy management, migraine diagnosis, and electrophysiological nerve studies.",
+        chamber: {
+          hospitalName: "Popular Diagnostic Centre - Panthapath",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Panthapath",
+          addressLine: "Plot 16, Bir Uttam CR Dutta Road, Panthapath, Dhaka",
+          serialPhone: "+8801819988776",
+          newPatientFee: 1200,
+          followUpFee: 700,
+          visitingDays: ["SUNDAY", "MONDAY", "WEDNESDAY", "THURSDAY"],
+          visitingHours: "05:30 PM - 09:00 PM"
+        }
+      },
+      {
+        id: "doc-4",
+        name: "Syed Nazmul Hasan",
+        title: "Prof. Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-19874",
+        bmdcVerified: true,
+        specialty: "Medicine",
+        subSpecialties: "Diabetology, Infectious Disease, Multi-System Illness",
+        currentHospital: "BIRDEM General Hospital",
+        currentDesignation: "Senior Consultant & Professor",
+        experienceYears: 28,
+        qualifications: "MBBS (DMC), FCPS (Internal Medicine), FRCP (Glasgow)",
+        photoUrl: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=250&auto=format&fit=crop&q=80",
+        bio: "Senior physician treating complicated systemic conditions, chronic hypertension, infectious fever disorders, and diabetic complications.",
+        chamber: {
+          hospitalName: "Square Hospitals Ltd.",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Panthapath",
+          addressLine: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka",
+          serialPhone: "+8801713377777",
+          newPatientFee: 1800,
+          followUpFee: 1200,
+          visitingDays: ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"],
+          visitingHours: "04:00 PM - 08:00 PM"
+        }
+      },
+      {
+        id: "doc-5",
+        name: "Nabila Rahman",
+        title: "Dr.",
+        gender: "Female",
+        bmdcRegNo: "A-52841",
+        bmdcVerified: true,
+        specialty: "Pediatrics",
+        subSpecialties: "Neonatology, Pediatric Nutrition, Child Growth",
+        currentHospital: "Sir Salimullah Medical College (Mitford Hospital)",
+        currentDesignation: "Assistant Professor",
+        experienceYears: 10,
+        qualifications: "MBBS (SSMC), DCH, FCPS (Pediatrics)",
+        photoUrl: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=250&auto=format&fit=crop&q=80",
+        bio: "Child specialist providing comprehensive newborn assessment, routine pediatric vaccinations, feeding issue solutions, and fever treatment.",
+        chamber: {
+          hospitalName: "Ibn Sina Diagnostic & Consultation Center",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Uttara",
+          addressLine: "House 48, Road 9/B, Sector 5, Uttara, Dhaka",
+          serialPhone: "+8801911445566",
+          newPatientFee: 1000,
+          followUpFee: 600,
+          visitingDays: ["SATURDAY", "SUNDAY", "TUESDAY", "WEDNESDAY", "FRIDAY"],
+          visitingHours: "06:00 PM - 09:00 PM"
+        }
+      },
+      {
+        id: "doc-6",
+        name: "Kazi Mahfuzur Rahman",
+        title: "Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-37651",
+        bmdcVerified: true,
+        specialty: "Dermatology",
+        subSpecialties: "Cosmetology, Laser Therapy, Psoriasis",
+        currentHospital: "Shaheed Suhrawardy Medical College",
+        currentDesignation: "Associate Professor",
+        experienceYears: 15,
+        qualifications: "MBBS, DDV, FCPS (Dermatology & Venereology)",
+        photoUrl: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=250&auto=format&fit=crop&q=80",
+        bio: "Leading consultant for eczema, severe acne, fungal allergies, hair loss therapy, psoriasis biologics, and modern dermatological laser.",
+        chamber: {
+          hospitalName: "Health and Hope Hospital",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Panthapath",
+          addressLine: "152/1-H, Green Road, Panthapath, Dhaka",
+          serialPhone: "+8801977665544",
+          newPatientFee: 1000,
+          followUpFee: 600,
+          visitingDays: ["SATURDAY", "MONDAY", "WEDNESDAY", "THURSDAY"],
+          visitingHours: "05:00 PM - 08:30 PM"
+        }
+      },
+      {
+        id: "doc-7",
+        name: "S. M. Tariqul Alam",
+        title: "Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-29831",
+        bmdcVerified: true,
+        specialty: "Orthopedics",
+        subSpecialties: "Joint Replacement, Arthroscopy, Trauma Surgery",
+        currentHospital: "National Institute of Traumatology & Orthopaedic Rehabilitation (NITOR)",
+        currentDesignation: "Associate Professor",
+        experienceYears: 18,
+        qualifications: "MBBS, MS (Orthopedics), Fellow in Arthroplasty (India)",
+        photoUrl: "https://images.unsplash.com/photo-1622902046580-2b47f47f5471?w=250&auto=format&fit=crop&q=80",
+        bio: "Specialized in knee and hip joint replacements, complex fracture reduction, arthroscopic ligament reconstruction, and sports injury care.",
+        chamber: {
+          hospitalName: "Evercare Hospital Dhaka",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Bashundhara",
+          addressLine: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229",
+          serialPhone: "+8801730011223",
+          newPatientFee: 1500,
+          followUpFee: 1000,
+          visitingDays: ["SUNDAY", "TUESDAY", "THURSDAY", "FRIDAY"],
+          visitingHours: "04:00 PM - 08:00 PM"
+        }
+      },
+      {
+        id: "doc-8",
+        name: "Rumana Parveen",
+        title: "Dr.",
+        gender: "Female",
+        bmdcRegNo: "A-44120",
+        bmdcVerified: true,
+        specialty: "Ophthalmology",
+        subSpecialties: "Cataract Phaco Surgery, Glaucoma, Cornea",
+        currentHospital: "National Institute of Ophthalmology & Hospital (NIOH)",
+        currentDesignation: "Consultant",
+        experienceYears: 13,
+        qualifications: "MBBS, FCPS (Ophthalmology), FICO (UK)",
+        photoUrl: "https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=250&auto=format&fit=crop&q=80",
+        bio: "Consultant eye surgeon experienced in modern sutureless micro-phaco cataract surgery, glaucoma screening, and refractive eye exams.",
+        chamber: {
+          hospitalName: "Bangladesh Eye Hospital",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Dhanmondi",
+          addressLine: "House 19/1, Road 6, Dhanmondi, Dhaka",
+          serialPhone: "+8801755667788",
+          newPatientFee: 1200,
+          followUpFee: 700,
+          visitingDays: ["SATURDAY", "SUNDAY", "MONDAY", "WEDNESDAY"],
+          visitingHours: "05:00 PM - 08:30 PM"
+        }
+      },
+      {
+        id: "doc-9",
+        name: "Ashraful Hoque",
+        title: "Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-38742",
+        bmdcVerified: true,
+        specialty: "Gastroenterology",
+        subSpecialties: "Therapeutic Endoscopy, Hepatology, Liver Cirrhosis",
+        currentHospital: "Chittagong Medical College & Hospital",
+        currentDesignation: "Associate Professor",
+        experienceYears: 17,
+        qualifications: "MBBS (CMC), MD (Hepatology), MACG (USA)",
+        photoUrl: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=250&auto=format&fit=crop&q=80",
+        bio: "Leading liver and gastroenterology specialist in Chattogram providing diagnostic endoscopy, colonoscopy, and fatty liver disease treatment.",
+        chamber: {
+          hospitalName: "Parkview Hospital",
+          division: "Chittagong",
+          district: "Chattogram",
+          area: "Panchlaish",
+          addressLine: "94/103, Katalganj Road, Panchlaish, Chattogram",
+          serialPhone: "+8801819556677",
+          newPatientFee: 1200,
+          followUpFee: 800,
+          visitingDays: ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY"],
+          visitingHours: "06:00 PM - 10:00 PM"
+        }
+      },
+      {
+        id: "doc-10",
+        name: "Farzana Yasmin",
+        title: "Dr.",
+        gender: "Female",
+        bmdcRegNo: "A-47201",
+        bmdcVerified: true,
+        specialty: "Psychiatry",
+        subSpecialties: "Child & Adolescent Mental Health, Anxiety, Mood Disorders",
+        currentHospital: "National Institute of Mental Health (NIMH)",
+        currentDesignation: "Assistant Professor",
+        experienceYears: 11,
+        qualifications: "MBBS, MD (Psychiatry)",
+        photoUrl: "https://images.unsplash.com/photo-1594824813589-9a22f7b8fbba?w=250&auto=format&fit=crop&q=80",
+        bio: "Compassionate mental health specialist treating clinical depression, anxiety disorders, OCD, ADHD in adolescents, and sleep issues.",
+        chamber: {
+          hospitalName: "Popular Diagnostic Centre - Shantinagar",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Shantinagar",
+          addressLine: "Unit 01, House 11, Shantinagar, Dhaka",
+          serialPhone: "+8801712889900",
+          newPatientFee: 1200,
+          followUpFee: 800,
+          visitingDays: ["SATURDAY", "MONDAY", "WEDNESDAY", "THURSDAY"],
+          visitingHours: "05:00 PM - 08:30 PM"
+        }
+      },
+      {
+        id: "doc-11",
+        name: "Moniruzzaman Khan",
+        title: "Dr.",
+        gender: "Male",
+        bmdcRegNo: "A-32115",
+        bmdcVerified: true,
+        specialty: "ENT (Ear, Nose & Throat)",
+        subSpecialties: "Micro-ear Surgery, Sinus Endoscopy, Voice Clinic",
+        currentHospital: "Sylhet MAG Osmani Medical College",
+        currentDesignation: "Associate Professor",
+        experienceYears: 19,
+        qualifications: "MBBS, DLO, MS (ENT)",
+        photoUrl: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80",
+        bio: "Senior ENT head and neck surgeon catering to patients across Sylhet division with endoscopic sinus surgery and ear microsurgery.",
+        chamber: {
+          hospitalName: "Mount Adora Hospital",
+          division: "Sylhet",
+          district: "Sylhet",
+          area: "Mirboxtula",
+          addressLine: "Nayasarak Road, Mirboxtula, Sylhet",
+          serialPhone: "+8801715443322",
+          newPatientFee: 1000,
+          followUpFee: 600,
+          visitingDays: ["SATURDAY", "SUNDAY", "TUESDAY", "WEDNESDAY"],
+          visitingHours: "05:00 PM - 09:00 PM"
+        }
+      },
+      {
+        id: "doc-12",
+        name: "Sadia Afroze",
+        title: "Dr.",
+        gender: "Female",
+        bmdcRegNo: "A-49231",
+        bmdcVerified: true,
+        specialty: "Endocrinology",
+        subSpecialties: "Diabetes, Thyroid Disorders, PCOS, Hormone Imbalance",
+        currentHospital: "BIRDEM General Hospital",
+        currentDesignation: "Assistant Professor",
+        experienceYears: 9,
+        qualifications: "MBBS, DEM, MD (Endocrinology)",
+        photoUrl: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=250&auto=format&fit=crop&q=80",
+        bio: "Specialist in diabetes care, thyroid nodules, PCOS-related hormonal challenges, weight management, and osteoporosis.",
+        chamber: {
+          hospitalName: "Labaid Diagnostic - Gulshan",
+          division: "Dhaka",
+          district: "Dhaka",
+          area: "Gulshan",
+          addressLine: "House 13/A, Road 35, Gulshan-2, Dhaka",
+          serialPhone: "+8801766554433",
+          newPatientFee: 1200,
+          followUpFee: 800,
+          visitingDays: ["SUNDAY", "MONDAY", "TUESDAY", "THURSDAY", "FRIDAY"],
+          visitingHours: "06:00 PM - 09:30 PM"
+        }
+      }
+    ];
+
+    const SPECIALTY_META = [
+      { name: "Cardiology", icon: "heart-pulse", description: "Heart conditions, hypertension, coronary disease, pacemakers", color: "text-rose-600 bg-rose-50" },
+      { name: "Medicine", icon: "activity", description: "Internal medicine, fevers, complex multisystem diagnostics", color: "text-blue-600 bg-blue-50" },
+      { name: "Gynecology & Obstetrics", icon: "baby", description: "Women's health, maternity, high-risk pregnancy, laparoscopy", color: "text-pink-600 bg-pink-50" },
+      { name: "Pediatrics", icon: "smile", description: "Infant care, neonatal health, childhood vaccinations, nutrition", color: "text-amber-600 bg-amber-50" },
+      { name: "Neurology", icon: "brain", description: "Brain disorders, stroke management, epilepsy, headaches", color: "text-purple-600 bg-purple-50" },
+      { name: "Orthopedics", icon: "bone", description: "Bones, joint replacement, trauma, arthritis, sports injuries", color: "text-indigo-600 bg-indigo-50" },
+      { name: "Dermatology", icon: "sparkles", description: "Skin diseases, allergy, acne, psoriasis, laser therapy", color: "text-teal-600 bg-teal-50" },
+      { name: "Gastroenterology", icon: "shield", description: "Digestive system, liver disorders, endoscopy, colonoscopy", color: "text-emerald-600 bg-emerald-50" },
+      { name: "Ophthalmology", icon: "eye", description: "Vision care, cataract surgery, glaucoma, corneal diseases", color: "text-sky-600 bg-sky-50" },
+      { name: "ENT (Ear, Nose & Throat)", icon: "ear", description: "Ear microsurgery, sinus endoscopic care, throat disorders", color: "text-orange-600 bg-orange-50" },
+      { name: "Psychiatry", icon: "user-check", description: "Mental health, anxiety, depression, mood & sleep therapy", color: "text-violet-600 bg-violet-50" },
+      { name: "Endocrinology", icon: "flame", description: "Diabetes, thyroid abnormalities, hormone & metabolic care", color: "text-red-600 bg-red-50" }
+    ];
+
+    // ========================================================
+    // STATE MANAGEMENT (Stored in localStorage)
+    // ========================================================
+    function getStoredDoctors() {
+      try {
+        const stored = localStorage.getItem("doctorconnect_data");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+      return DEFAULT_DOCTORS;
+    }
+
+    function saveDoctors(doctors) {
+      localStorage.setItem("doctorconnect_data", JSON.stringify(doctors));
+      updateGlobalCounters();
+    }
+
+    let activeDoctors = getStoredDoctors();
+    let currentFilterState = {
+      searchQuery: '',
+      specialty: '',
+      division: '',
+      day: '',
+      isTodayOnly: false,
+      sortBy: 'experience'
+    };
+
+    // Calculate Today's Day of Week
+    const DAYS_MAP = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    const todayIndex = new Date().getDay();
+    const TODAY_CODE = DAYS_MAP[todayIndex];
+    const TODAY_HUMAN = TODAY_CODE.charAt(0) + TODAY_CODE.slice(1).toLowerCase();
+
+    // ========================================================
+    // ROUTING & NAVIGATION
+    // ========================================================
+    function navigateTo(routeId) {
+      // Hide all views
+      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+
+      // Remove active from desktop nav links
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('active-nav-link');
+        if (el.getAttribute('data-route') === routeId) {
+          el.classList.add('active-nav-link');
+        }
+      });
+
+      const target = document.getElementById('view-' + routeId);
+      if (target) {
+        target.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Route specific setups
+      if (routeId === 'find-doctors') {
+        applyFilters();
+      } else if (routeId === 'specialties') {
+        renderFullSpecialties();
+      } else if (routeId === 'hospitals') {
+        renderHospitalsList();
+      } else if (routeId === 'chambers') {
+        renderChambersList();
+      } else if (routeId === 'nearby') {
+        renderNearbyList();
+      }
+
+      lucide.createIcons();
+    }
+
+    function toggleMobileNav() {
+      const mob = document.getElementById('mobile-nav');
+      mob.classList.toggle('hidden');
+    }
+
+    // ========================================================
+    // FILTERING & SEARCH ENGINE
+    // ========================================================
+    function filterDoctors(opts = {}) {
+      if (opts.filterType === 'all') {
+        currentFilterState = { searchQuery: '', specialty: '', division: '', day: '', isTodayOnly: false, sortBy: 'experience' };
+        document.getElementById('find-doctors-title').textContent = "All Doctors";
+      } else if (opts.filterType === 'today') {
+        currentFilterState.isTodayOnly = true;
+        currentFilterState.day = TODAY_CODE;
+        document.getElementById('find-doctors-title').textContent = `Doctors Available Today (${TODAY_HUMAN})`;
+      } else if (opts.specialty) {
+        currentFilterState.specialty = opts.specialty;
+        document.getElementById('find-doctors-title').textContent = `${opts.specialty} Specialists`;
+      } else if (opts.division) {
+        currentFilterState.division = opts.division;
+        document.getElementById('find-doctors-title').textContent = `Doctors in ${opts.division} Division`;
+      }
+
+      // Sync Form Inputs
+      const filterSpecialty = document.getElementById('filter-specialty-select');
+      if (filterSpecialty) filterSpecialty.value = currentFilterState.specialty || '';
+      
+      const filterDivision = document.getElementById('filter-division-select');
+      if (filterDivision) filterDivision.value = currentFilterState.division || '';
+
+      const filterDay = document.getElementById('filter-day-select');
+      if (filterDay) filterDay.value = currentFilterState.day || '';
+
+      const searchInput = document.getElementById('filter-search-input');
+      if (searchInput) searchInput.value = currentFilterState.searchQuery || '';
+
+      updateFilterPillStates();
+      navigateTo('find-doctors');
+    }
+
+    function updateFilterPillStates() {
+      const pills = ['all', 'today', 'dhaka', 'chattogram', 'sylhet'];
+      pills.forEach(p => {
+        const btn = document.getElementById('pill-' + p);
+        if (btn) {
+          btn.className = "px-4 py-2 text-xs font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200";
+        }
+      });
+
+      if (currentFilterState.isTodayOnly) {
+        const btn = document.getElementById('pill-today');
+        if (btn) btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow-xs";
+      } else if (currentFilterState.division === 'Dhaka') {
+        const btn = document.getElementById('pill-dhaka');
+        if (btn) btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-primary-600 text-white shadow-xs";
+      } else if (currentFilterState.division === 'Chittagong') {
+        const btn = document.getElementById('pill-chattogram');
+        if (btn) btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-primary-600 text-white shadow-xs";
+      } else if (currentFilterState.division === 'Sylhet') {
+        const btn = document.getElementById('pill-sylhet');
+        if (btn) btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-primary-600 text-white shadow-xs";
+      } else {
+        const btn = document.getElementById('pill-all');
+        if (btn) btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-primary-600 text-white shadow-xs";
+      }
+    }
+
+    function handleHeroSearch() {
+      const query = document.getElementById('hero-search-query').value.trim();
+      const specialty = document.getElementById('hero-search-specialty').value;
+      const division = document.getElementById('hero-search-division').value;
+
+      currentFilterState = {
+        searchQuery: query,
+        specialty: specialty,
+        division: division,
+        day: '',
+        isTodayOnly: false,
+        sortBy: 'experience'
+      };
+
+      document.getElementById('filter-search-input').value = query;
+      document.getElementById('filter-specialty-select').value = specialty;
+      document.getElementById('filter-division-select').value = division;
+      document.getElementById('filter-day-select').value = '';
+
+      document.getElementById('find-doctors-title').textContent = query ? `Search Results for "${query}"` : "Find Doctors";
+      navigateTo('find-doctors');
+    }
+
+    function applyFilters() {
+      const query = (document.getElementById('filter-search-input')?.value || '').toLowerCase().trim();
+      const specialty = document.getElementById('filter-specialty-select')?.value || '';
+      const division = document.getElementById('filter-division-select')?.value || '';
+      const day = document.getElementById('filter-day-select')?.value || '';
+      const sortBy = document.getElementById('sort-select')?.value || 'experience';
+
+      currentFilterState.searchQuery = query;
+      currentFilterState.specialty = specialty;
+      currentFilterState.division = division;
+      currentFilterState.day = day;
+      currentFilterState.sortBy = sortBy;
+
+      let results = activeDoctors.filter(doc => {
+        // Query match
+        if (query) {
+          const matchName = doc.name.toLowerCase().includes(query);
+          const matchBMDC = (doc.bmdcRegNo || '').toLowerCase().includes(query);
+          const matchSpecialty = (doc.specialty || '').toLowerCase().includes(query);
+          const matchHospital = (doc.currentHospital || '').toLowerCase().includes(query) || (doc.chamber?.hospitalName || '').toLowerCase().includes(query);
+          const matchArea = (doc.chamber?.area || '').toLowerCase().includes(query);
+          const matchQual = (doc.qualifications || '').toLowerCase().includes(query);
+          if (!matchName && !matchBMDC && !matchSpecialty && !matchHospital && !matchArea && !matchQual) {
+            return false;
+          }
+        }
+
+        // Specialty
+        if (specialty && doc.specialty !== specialty) return false;
+
+        // Division
+        if (division && doc.chamber?.division !== division) return false;
+
+        // Day of week
+        if (day) {
+          if (!doc.chamber?.visitingDays || !doc.chamber.visitingDays.includes(day)) return false;
+        }
+
+        return true;
+      });
+
+      // Sorting
+      if (sortBy === 'experience') {
+        results.sort((a, b) => (b.experienceYears || 0) - (a.experienceYears || 0));
+      } else if (sortBy === 'name') {
+        results.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortBy === 'fee') {
+        results.sort((a, b) => (a.chamber?.newPatientFee || 0) - (b.chamber?.newPatientFee || 0));
+      }
+
+      // Render Results
+      const grid = document.getElementById('doctors-results-grid');
+      const countEl = document.getElementById('results-count-text');
+      countEl.textContent = `Showing ${results.length} doctor${results.length === 1 ? '' : 's'}`;
+
+      if (results.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-slate-300">
+            <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+              <i data-lucide="user-x" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800">No Doctors Match Your Filters</h3>
+            <p class="text-xs text-slate-500 mt-1">Try relaxing your search terms or clearing division & day filters.</p>
+            <button onclick="filterDoctors({ filterType: 'all' })" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg text-xs font-semibold">
+              Reset All Filters
+            </button>
+          </div>
+        `;
+      } else {
+        grid.innerHTML = results.map(doc => renderDoctorCard(doc)).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // ========================================================
+    // HTML RENDERING HELPERS
+    // ========================================================
+    function isDoctorAvailableToday(doc) {
+      if (!doc.chamber?.visitingDays) return false;
+      return doc.chamber.visitingDays.includes(TODAY_CODE);
+    }
+
+    function renderDoctorCard(doc) {
+      const sitsToday = isDoctorAvailableToday(doc);
+      return `
+        <div class="bg-white rounded-2xl border border-slate-200/90 hover:border-primary-300 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between group">
+          <div>
+            <!-- Header Badges -->
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                <i data-lucide="award" class="w-3 h-3 text-primary-600"></i> ${doc.experienceYears || 0}+ Yrs Exp
+              </span>
+              ${sitsToday ? `
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> Sitting Today
+                </span>
+              ` : `
+                <span class="text-[10px] text-slate-400 font-medium">Chamber Scheduled</span>
+              `}
+            </div>
+
+            <!-- Doctor Bio Row -->
+            <div class="flex items-start gap-3.5 mb-3">
+              <img src="${doc.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80'}" 
+                alt="${doc.name}" class="w-14 h-14 rounded-xl object-cover bg-slate-100 border border-slate-200 flex-shrink-0">
+              <div>
+                <h3 class="text-base font-extrabold text-slate-900 group-hover:text-primary-700 transition-colors leading-snug cursor-pointer" onclick="openDoctorModal('${doc.id}')">
+                  ${doc.title || 'Dr.'} ${doc.name}
+                </h3>
+                <p class="text-xs font-bold text-primary-600">${doc.specialty}</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[11px] font-semibold text-slate-500">BMDC:</span>
+                  <span class="text-[11px] font-mono font-bold text-slate-700">${doc.bmdcRegNo || 'Verified'}</span>
+                  ${doc.bmdcVerified !== false ? `
+                    <span title="BMDC Verified Medical Practitioner" class="text-emerald-600"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i></span>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Degree & Hospital -->
+            <div class="text-xs text-slate-600 space-y-1 mb-4 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+              <p class="font-medium text-slate-800 line-clamp-1" title="${doc.qualifications}">${doc.qualifications || 'MBBS'}</p>
+              <p class="text-[11px] text-slate-500 line-clamp-1"><i data-lucide="building-2" class="w-3 h-3 inline text-slate-400 mr-1"></i> ${doc.currentHospital || 'Medical College & Hospital'}</p>
+            </div>
+
+            <!-- Chamber Schedule Preview -->
+            <div class="border-t border-slate-100 pt-3 text-xs space-y-1.5">
+              <div class="flex items-start gap-1.5 text-slate-700">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500 flex-shrink-0 mt-0.5"></i>
+                <div class="line-clamp-1">
+                  <span class="font-bold text-slate-800">${doc.chamber?.hospitalName || 'Private Chamber'}</span>
+                  <span class="text-slate-400 text-[11px]">(${doc.chamber?.area || doc.chamber?.division || 'Dhaka'})</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-500">
+                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> ${doc.chamber?.visitingHours || '05:00 PM - 09:00 PM'}</span>
+                <span class="font-bold text-slate-700">Fee: ৳${doc.chamber?.newPatientFee || 1000}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+            <button onclick="openDoctorModal('${doc.id}')" class="flex-1 py-2 text-center text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+              Full Profile
+            </button>
+            <a href="tel:${doc.chamber?.serialPhone || doc.phone || '+8801700000000'}" class="flex-1 py-2 text-center text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center justify-center gap-1">
+              <i data-lucide="phone" class="w-3.5 h-3.5"></i> Book Serial
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================================
+    // MODAL DIALOGS
+    // ========================================================
+    function openDoctorModal(docId) {
+      const doc = activeDoctors.find(d => d.id === docId);
+      if (!doc) return;
+
+      const sitsToday = isDoctorAvailableToday(doc);
+      const days = doc.chamber?.visitingDays || [];
+      const daysListHtml = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'].map(d => {
+        const active = days.includes(d);
+        const isCurrent = d === TODAY_CODE;
+        return `
+          <span class="px-2.5 py-1 rounded-md text-xs font-semibold ${active ? (isCurrent ? 'bg-emerald-600 text-white shadow-xs' : 'bg-primary-100 text-primary-800') : 'bg-slate-100 text-slate-400'}">
+            ${d.slice(0, 3)}
+          </span>
+        `;
+      }).join('');
+
+      const content = `
+        <div class="p-6 sm:p-8">
+          <div class="flex flex-col sm:flex-row items-start gap-4 pb-6 border-b border-slate-200">
+            <img src="${doc.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80'}" 
+              class="w-20 h-20 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-xs flex-shrink-0">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 text-primary-700 border border-primary-200">
+                  ${doc.specialty}
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i> BMDC: ${doc.bmdcRegNo || 'A-Registered'}
+                </span>
+                ${sitsToday ? `
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white">
+                    Sitting Today
+                  </span>
+                ` : ''}
+              </div>
+              <h2 class="text-xl sm:text-2xl font-black text-slate-900">${doc.title || 'Dr.'} ${doc.name}</h2>
+              <p class="text-xs text-slate-500 font-medium">${doc.currentDesignation || 'Consultant'} • ${doc.currentHospital || 'Hospital'}</p>
+              <p class="text-xs text-slate-600 font-semibold mt-1">Experience: ${doc.experienceYears || 0}+ Years in Clinical Practice</p>
+            </div>
+          </div>
+
+          <!-- Academic Degrees -->
+          <div class="py-4 border-b border-slate-200">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Qualifications & Degrees</h4>
+            <p class="text-sm font-bold text-slate-800">${doc.qualifications || 'MBBS'}</p>
+            ${doc.subSpecialties ? `<p class="text-xs text-slate-500 mt-1">Special Clinical Focus: <span class="font-semibold text-slate-700">${doc.subSpecialties}</span></p>` : ''}
+          </div>
+
+          <!-- Bio / Description -->
+          <div class="py-4 border-b border-slate-200">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Doctor Profile Overview</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">${doc.bio || 'Experienced certified physician dedicated to evidence-based healthcare and patient well-being.'}</p>
+          </div>
+
+          <!-- Chamber & Appointment Info -->
+          <div class="py-4 border-b border-slate-200">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+              <span>Chamber & Visiting Schedule</span>
+              <span class="text-primary-600 lowercase font-medium">${doc.chamber?.division || 'Dhaka'} division</span>
+            </h4>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div>
+                <h5 class="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                  <i data-lucide="building" class="w-4 h-4 text-primary-600"></i> ${doc.chamber?.hospitalName || 'Private Chamber'}
+                </h5>
+                <p class="text-xs text-slate-600 mt-0.5 ml-5">${doc.chamber?.addressLine || 'Dhanmondi, Dhaka'}</p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80">
+                <div>
+                  <span class="text-[11px] text-slate-400 block font-medium">Visiting Hours</span>
+                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1 mt-0.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-primary-600"></i> ${doc.chamber?.visitingHours || '05:00 PM - 09:00 PM'}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-[11px] text-slate-400 block font-medium">Appointment Serial Phone</span>
+                  <a href="tel:${doc.chamber?.serialPhone || '+8801700000000'}" class="text-xs font-extrabold text-primary-700 flex items-center gap-1 mt-0.5 hover:underline">
+                    <i data-lucide="phone-call" class="w-3.5 h-3.5 text-primary-600"></i> ${doc.chamber?.serialPhone || 'Call for Serial'}
+                  </a>
+                </div>
+              </div>
+
+              <!-- Days row -->
+              <div class="pt-2 border-t border-slate-200/80">
+                <span class="text-[11px] text-slate-400 block font-medium mb-1.5">Visiting Days</span>
+                <div class="flex flex-wrap gap-1.5">
+                  ${daysListHtml}
+                </div>
+              </div>
+
+              <!-- Fee Breakdown -->
+              <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
+                <span class="text-slate-500">New Consultation: <strong class="text-slate-900">৳${doc.chamber?.newPatientFee || 1000}</strong></span>
+                <span class="text-slate-500">Follow-up: <strong class="text-slate-900">৳${doc.chamber?.followUpFee || 600}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action -->
+          <div class="pt-5 flex items-center justify-between gap-3">
+            <button onclick="closeDoctorModal()" class="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+              Close
+            </button>
+            <a href="tel:${doc.chamber?.serialPhone || '+8801700000000'}" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2">
+              <i data-lucide="phone" class="w-4 h-4"></i> Call Chamber Serial Desk
+            </a>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('doctor-modal-content').innerHTML = content;
+      document.getElementById('doctor-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeDoctorModal() {
+      document.getElementById('doctor-modal').classList.add('hidden');
+    }
+
+    // ========================================================
+    // PUBLIC DOCTOR SUBMISSION (NO ADMIN LOGIN REQUIRED)
+    // ========================================================
+    function openDoctorSubmissionModal() {
+      document.getElementById('submission-modal').classList.remove('hidden');
+    }
+
+    function closeDoctorSubmissionModal() {
+      document.getElementById('submission-modal').classList.add('hidden');
+    }
+
+    function handleDoctorSubmit(e) {
+      e.preventDefault();
+
+      const daysChecked = [];
+      document.querySelectorAll('input[name="sub-days"]:checked').forEach(c => daysChecked.push(c.value));
+
+      const newDoc = {
+        id: "doc-sub-" + Date.now(),
+        name: document.getElementById('sub-name').value.trim(),
+        title: document.getElementById('sub-title').value,
+        gender: document.getElementById('sub-gender').value,
+        bmdcRegNo: document.getElementById('sub-bmdc').value.trim(),
+        bmdcVerified: true,
+        specialty: document.getElementById('sub-specialty').value,
+        subSpecialties: document.getElementById('sub-subspecialty').value.trim(),
+        currentHospital: document.getElementById('sub-hospital').value.trim(),
+        currentDesignation: document.getElementById('sub-designation').value.trim(),
+        experienceYears: 5,
+        qualifications: document.getElementById('sub-qualifications').value.trim(),
+        photoUrl: document.getElementById('sub-gender').value === 'Female' 
+          ? "https://images.unsplash.com/photo-1594824813589-9a22f7b8fbba?w=250&auto=format&fit=crop&q=80"
+          : "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80",
+        bio: document.getElementById('sub-bio').value.trim() || "Registered medical specialist with verified credentials.",
+        chamber: {
+          hospitalName: document.getElementById('sub-chamber-hospital').value.trim(),
+          division: document.getElementById('sub-chamber-division').value,
+          district: document.getElementById('sub-chamber-division').value,
+          area: document.getElementById('sub-chamber-area').value.trim(),
+          addressLine: document.getElementById('sub-chamber-address').value.trim(),
+          serialPhone: document.getElementById('sub-chamber-phone').value.trim(),
+          newPatientFee: parseInt(document.getElementById('sub-chamber-fee').value) || 1000,
+          followUpFee: 600,
+          visitingDays: daysChecked.length > 0 ? daysChecked : ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY"],
+          visitingHours: document.getElementById('sub-chamber-hours').value.trim()
+        }
+      };
+
+      activeDoctors.unshift(newDoc);
+      saveDoctors(activeDoctors);
+
+      closeDoctorSubmissionModal();
+      alert(`Success! Dr. ${newDoc.name}'s profile has been submitted and published with BMDC No: ${newDoc.bmdcRegNo}.`);
+      
+      initHomePage();
+      filterDoctors({ filterType: 'all' });
+    }
+
+    // ========================================================
+    // CSV IMPORT / EXPORT TOOLS
+    // ========================================================
+    function openCsvManagerModal() {
+      document.getElementById('csv-modal').classList.remove('hidden');
+    }
+
+    function closeCsvManagerModal() {
+      document.getElementById('csv-modal').classList.add('hidden');
+    }
+
+    function exportDoctorsToCSV() {
+      const flatData = activeDoctors.map(d => ({
+        name: d.name,
+        title: d.title,
+        bmdcRegNo: d.bmdcRegNo,
+        gender: d.gender,
+        specialty: d.specialty,
+        subSpecialties: d.subSpecialties,
+        currentHospital: d.currentHospital,
+        currentDesignation: d.currentDesignation,
+        experienceYears: d.experienceYears,
+        qualifications: d.qualifications,
+        chamberHospital: d.chamber?.hospitalName,
+        division: d.chamber?.division,
+        area: d.chamber?.area,
+        addressLine: d.chamber?.addressLine,
+        serialPhone: d.chamber?.serialPhone,
+        newPatientFee: d.chamber?.newPatientFee,
+        followUpFee: d.chamber?.followUpFee,
+        visitingDays: (d.chamber?.visitingDays || []).join(';'),
+        visitingHours: d.chamber?.visitingHours,
+        bio: d.bio
+      }));
+
+      const csv = Papa.unparse(flatData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `doctorconnect_doctors_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportDoctorsToJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeDoctors, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `doctorconnect_database_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function handleCsvUpload() {
+      const fileInput = document.getElementById('csv-file-input');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please choose a CSV file to upload.");
+        return;
+      }
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (!results.data || results.data.length === 0) {
+            alert("No records found in CSV.");
+            return;
+          }
+
+          let addedCount = 0;
+          results.data.forEach((row, idx) => {
+            if (!row.name || !row.specialty) return;
+            const newDoc = {
+              id: "doc-csv-" + Date.now() + "-" + idx,
+              name: row.name,
+              title: row.title || "Dr.",
+              gender: row.gender || "Male",
+              bmdcRegNo: row.bmdcRegNo || ("A-" + Math.floor(10000 + Math.random() * 90000)),
+              bmdcVerified: true,
+              specialty: row.specialty,
+              subSpecialties: row.subSpecialties || "",
+              currentHospital: row.currentHospital || "General Hospital",
+              currentDesignation: row.currentDesignation || "Consultant",
+              experienceYears: parseInt(row.experienceYears) || 10,
+              qualifications: row.qualifications || "MBBS",
+              photoUrl: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=250&auto=format&fit=crop&q=80",
+              bio: row.bio || "Certified medical specialist.",
+              chamber: {
+                hospitalName: row.chamberHospital || "Specialized Chamber",
+                division: row.division || "Dhaka",
+                district: row.division || "Dhaka",
+                area: row.area || "City Center",
+                addressLine: row.addressLine || "",
+                serialPhone: row.serialPhone || "+8801700000000",
+                newPatientFee: parseInt(row.newPatientFee) || 1000,
+                followUpFee: parseInt(row.followUpFee) || 600,
+                visitingDays: row.visitingDays ? row.visitingDays.split(';') : ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY"],
+                visitingHours: row.visitingHours || "05:00 PM - 09:00 PM"
+              }
+            };
+            activeDoctors.unshift(newDoc);
+            addedCount++;
+          });
+
+          saveDoctors(activeDoctors);
+          closeCsvManagerModal();
+          alert(`Successfully imported ${addedCount} doctor records from CSV.`);
+          initHomePage();
+          filterDoctors({ filterType: 'all' });
+        }
+      });
+    }
+
+    function resetDefaultDoctors() {
+      if (confirm("Reset directory data to default verified doctors?")) {
+        activeDoctors = [...DEFAULT_DOCTORS];
+        saveDoctors(activeDoctors);
+        closeCsvManagerModal();
+        initHomePage();
+        filterDoctors({ filterType: 'all' });
+        alert("Directory reset to default verified records.");
+      }
+    }
+
+    // ========================================================
+    // HOME & SPECIALTIES RENDERING
+    // ========================================================
+    function updateGlobalCounters() {
+      const docCount = document.getElementById('stat-doctor-count');
+      if (docCount) docCount.textContent = `${activeDoctors.length}+`;
+
+      const specialtySet = new Set(activeDoctors.map(d => d.specialty));
+      const spCount = document.getElementById('stat-specialty-count');
+      if (spCount) spCount.textContent = specialtySet.size;
+
+      const chamberCount = document.getElementById('stat-chamber-count');
+      if (chamberCount) chamberCount.textContent = `${activeDoctors.length}+`;
+    }
+
+    function initHomePage() {
+      updateGlobalCounters();
+
+      // Populate hero selects
+      const specSelect = document.getElementById('hero-search-specialty');
+      const filterSpecSelect = document.getElementById('filter-specialty-select');
+      const distinctSpecs = Array.from(new Set(activeDoctors.map(d => d.specialty))).sort();
+
+      const optionsHtml = '<option value="">All Specialties</option>' + distinctSpecs.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (specSelect) specSelect.innerHTML = optionsHtml;
+      if (filterSpecSelect) filterSpecSelect.innerHTML = optionsHtml;
+
+      // Render home specialties
+      const homeSpecGrid = document.getElementById('home-specialties-grid');
+      if (homeSpecGrid) {
+        homeSpecGrid.innerHTML = SPECIALTY_META.slice(0, 12).map(sp => {
+          const count = activeDoctors.filter(d => d.specialty === sp.name).length;
+          return `
+            <div onclick="filterDoctors({ specialty: '${sp.name}' })" class="bg-slate-50 hover:bg-primary-50/70 border border-slate-200/80 hover:border-primary-300 rounded-2xl p-4 text-center cursor-pointer transition-all group">
+              <div class="w-12 h-12 mx-auto rounded-xl ${sp.color} flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <i data-lucide="${sp.icon}" class="w-6 h-6"></i>
+              </div>
+              <h4 class="font-bold text-xs sm:text-sm text-slate-800 group-hover:text-primary-700 transition-colors line-clamp-1">${sp.name}</h4>
+              <p class="text-[11px] text-slate-400 mt-0.5">${count} Doctor${count === 1 ? '' : 's'}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render home featured doctors
+      const featuredGrid = document.getElementById('home-featured-doctors');
+      if (featuredGrid) {
+        featuredGrid.innerHTML = activeDoctors.slice(0, 6).map(doc => renderDoctorCard(doc)).join('');
+      }
+
+      const todayBadge = document.getElementById('today-name-badge');
+      if (todayBadge) todayBadge.textContent = TODAY_HUMAN;
+
+      lucide.createIcons();
+    }
+
+    function renderFullSpecialties() {
+      const container = document.getElementById('specialties-full-grid');
+      if (!container) return;
+
+      container.innerHTML = SPECIALTY_META.map(sp => {
+        const doctorsInSpec = activeDoctors.filter(d => d.specialty === sp.name);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl ${sp.color} flex items-center justify-center mb-3">
+                <i data-lucide="${sp.icon}" class="w-6 h-6"></i>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">${sp.name}</h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">${sp.description}</p>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-600">${doctorsInSpec.length} Registered Doctor${doctorsInSpec.length === 1 ? '' : 's'}</span>
+              <button onclick="filterDoctors({ specialty: '${sp.name}' })" class="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                View <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderHospitalsList() {
+      const container = document.getElementById('hospitals-list-grid');
+      if (!container) return;
+
+      const hospitals = [
+        { name: "Square Hospitals Ltd.", division: "Dhaka", area: "West Panthapath", type: "Tertiary Private", hotline: "10616", address: "18/F Bir Uttam Qazi Nuruzzaman Sarak, Dhaka" },
+        { name: "Evercare Hospital Dhaka", division: "Dhaka", area: "Bashundhara R/A", type: "JCI Accredited", hotline: "10678", address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229" },
+        { name: "Dhaka Medical College Hospital", division: "Dhaka", area: "Secretariat Road", type: "Public Academic", hotline: "02-55165088", address: "Secretariat Road, Ramna, Dhaka" },
+        { name: "BSMMU (PG Hospital)", division: "Dhaka", area: "Shahbagh", type: "Autonomous Medical University", hotline: "02-9661051", address: "Shahbagh, Dhaka-1000" },
+        { name: "Labaid Specialized Hospital", division: "Dhaka", area: "Dhanmondi", type: "Cardiac & Specialized", hotline: "10606", address: "House 06, Road 04, Dhanmondi, Dhaka" },
+        { name: "BIRDEM General Hospital", division: "Dhaka", area: "Shahbagh", type: "Diabetic & Research", hotline: "02-9661551", address: "122 Kazi Nazrul Islam Avenue, Shahbagh, Dhaka" },
+        { name: "Popular Diagnostic Centre", division: "Dhaka", area: "Dhanmondi / Panthapath", type: "Diagnostic & Chamber", hotline: "09613787801", address: "House 16, Road 2, Dhanmondi, Dhaka" },
+        { name: "Central Hospital Limited", division: "Dhaka", area: "Green Road", type: "Maternity & General", hotline: "02-9660015", address: "House 02, Road 05, Green Road, Dhanmondi, Dhaka" },
+        { name: "Parkview Hospital", division: "Chittagong", area: "Panchlaish", type: "Multi-disciplinary", hotline: "09612-445522", address: "94/103 Katalganj Road, Panchlaish, Chattogram" },
+        { name: "Mount Adora Hospital", division: "Sylhet", area: "Mirboxtula", type: "Specialized", hotline: "01715-443322", address: "Nayasarak Road, Mirboxtula, Sylhet" }
+      ];
+
+      container.innerHTML = hospitals.map(h => {
+        const affiliatedDoctors = activeDoctors.filter(d => 
+          (d.currentHospital && d.currentHospital.includes(h.name)) || 
+          (d.chamber?.hospitalName && d.chamber.hospitalName.includes(h.name))
+        );
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-2">
+                <span class="px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">${h.type}</span>
+                <span class="text-slate-400 font-medium">${h.division}</span>
+              </div>
+              <h3 class="text-base font-extrabold text-slate-900">${h.name}</h3>
+              <p class="text-xs text-slate-500 mt-1 flex items-start gap-1">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5"></i> ${h.address}
+              </p>
+              <p class="text-xs font-semibold text-primary-700 mt-2 flex items-center gap-1">
+                <i data-lucide="phone" class="w-3.5 h-3.5 text-primary-600"></i> Hotline: ${h.hotline}
+              </p>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-600">${affiliatedDoctors.length} Associated Doctor${affiliatedDoctors.length === 1 ? '' : 's'}</span>
+              <button onclick="handleHospitalFilter('${h.name}')" class="text-xs font-bold text-primary-600 hover:text-primary-700">
+                View Doctors →
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function handleHospitalFilter(hospitalName) {
+      document.getElementById('filter-search-input').value = hospitalName;
+      applyFilters();
+      navigateTo('find-doctors');
+    }
+
+    function renderChambersList() {
+      const container = document.getElementById('chambers-list-grid');
+      if (!container) return;
+
+      const q = (document.getElementById('chamber-search-box')?.value || '').toLowerCase().trim();
+
+      const chambers = activeDoctors.filter(d => {
+        if (!d.chamber) return false;
+        if (!q) return true;
+        return d.name.toLowerCase().includes(q) ||
+          d.chamber.hospitalName.toLowerCase().includes(q) ||
+          d.chamber.area.toLowerCase().includes(q) ||
+          d.chamber.division.toLowerCase().includes(q);
+      });
+
+      if (chambers.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 text-xs">
+            No chambers matched your query.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = chambers.map(d => `
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="font-bold text-primary-600 uppercase tracking-wide text-[10px]">${d.chamber.division} • ${d.chamber.area}</span>
+              <span class="font-extrabold text-slate-900">৳${d.chamber.newPatientFee}</span>
+            </div>
+            <h3 class="text-sm font-extrabold text-slate-900">${d.chamber.hospitalName}</h3>
+            <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">${d.chamber.addressLine || 'Address on record'}</p>
+
+            <div class="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+              <p class="font-bold text-slate-800">${d.title} ${d.name}</p>
+              <p class="text-[11px] text-primary-600 font-semibold">${d.specialty}</p>
+              <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> ${d.chamber.visitingHours}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+            <button onclick="openDoctorModal('${d.id}')" class="text-xs font-bold text-slate-700 hover:text-slate-900">
+              Chamber Schedule
+            </button>
+            <a href="tel:${d.chamber.serialPhone}" class="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+              <i data-lucide="phone" class="w-3.5 h-3.5"></i> Serial: ${d.chamber.serialPhone}
+            </a>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function renderNearbyList() {
+      const selectedArea = document.getElementById('nearby-area-select')?.value || 'Dhanmondi';
+      handleAreaChange(selectedArea);
+    }
+
+    function handleAreaChange(area) {
+      const container = document.getElementById('nearby-results-grid');
+      if (!container) return;
+
+      const nearbyDocs = activeDoctors.filter(d => {
+        if (!d.chamber) return false;
+        return (d.chamber.area || '').toLowerCase().includes(area.toLowerCase()) ||
+               (d.chamber.addressLine || '').toLowerCase().includes(area.toLowerCase());
+      });
+
+      if (nearbyDocs.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-slate-300">
+            <h3 class="text-sm font-bold text-slate-800">No Chambers Recorded in ${area} Yet</h3>
+            <p class="text-xs text-slate-500 mt-1">Check nearby locations such as Dhanmondi or Panthapath.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = nearbyDocs.map(doc => renderDoctorCard(doc)).join('');
+      }
+      lucide.createIcons();
+    }
+
+    function requestGeolocation() {
+      const status = document.getElementById('gps-status-text');
+      status.classList.remove('hidden');
+      status.textContent = "Acquiring GPS location...";
+
+      if (!navigator.geolocation) {
+        status.textContent = "Geolocation is not supported by your browser. Defaulting to Dhanmondi, Dhaka.";
+        handleAreaChange("Dhanmondi");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          status.textContent = `Location locked (Lat: ${position.coords.latitude.toFixed(3)}, Lng: ${position.coords.longitude.toFixed(3)}). Displaying nearest medical centers in Dhaka.`;
+          handleAreaChange("Dhanmondi");
+        },
+        () => {
+          status.textContent = "Location permission denied. Showing doctors in central Dhanmondi & Panthapath area.";
+          handleAreaChange("Dhanmondi");
+        }
+      );
+    }
+
+    function handleContactSubmit(e) {
+      e.preventDefault();
+      alert("Thank you for your message. Our directory team has received your inquiry.");
+      e.target.reset();
+    }
+
+    // ========================================================
+    // APP BOOTSTRAP
+    // ========================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initHomePage();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum VerificationStatus {
+  PUBLISHED
+  PENDING_VERIFICATION
+  REJECTED
+}
+
+enum DayOfWeek {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+model Specialty {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?  // lucide icon name
+  doctors     Doctor[]
+  createdAt   DateTime @default(now())
+}
+
+model Doctor {
+  id                 String             @id @default(cuid())
+  slug               String             @unique
+  name               String
+  title              String             @default("Dr.")
+  gender             String?            // Male, Female, Other
+  photoUrl           String?
+  bio                String?
+  experienceYears    Int                @default(0)
+  languages          String             @default("Bangla, English") // comma separated
+  
+  // BMDC Info
+  bmdcRegNo          String             @unique
+  bmdcRegType        String             @default("Full")
+  isBmdcVerified     Boolean            @default(true)
+  bmdcRegYear        Int?
+
+  // Specialty & Hospital Affiliation
+  specialtyId        String
+  specialty          Specialty          @relation(fields: [specialtyId], references: [id])
+  subSpecialties     String?            // comma-separated
+  currentHospital    String?
+  currentDesignation String?
+
+  // Status & Contacts
+  status             VerificationStatus @default(PUBLISHED)
+  email              String?
+  phone              String?
+  serialPhone        String?
+
+  // Relations
+  qualifications     Qualification[]
+  chambers           Chamber[]
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Qualification {
+  id          String   @id @default(cuid())
+  doctorId    String
+  doctor      Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  degree      String   // e.g. MBBS, FCPS (Cardiology), MD, MRCP
+  institute   String   // e.g. Dhaka Medical College, BSMMU
+  passingYear Int?
+}
+
+model Chamber {
+  id             String            @id @default(cuid())
+  doctorId       String
+  doctor         Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  
+  hospitalName   String            // e.g. "Square Hospital", "Popular Diagnostic Centre - Dhanmondi"
+  division       String            // e.g. "Dhaka", "Chittagong"
+  district       String            // e.g. "Dhaka", "Chattogram"
+  area           String            // e.g. "Dhanmondi", "Panthapath", "Uttara"
+  addressLine    String            // Full street address
+  roomNumber     String?
+  
+  latitude       Float?
+  longitude      Float?
+  
+  serialPhone    String?
+  
+  // Fees (in BDT)
+  newPatientFee  Int               @default(1000)
+  followUpFee    Int               @default(600)
+  reportCheckFee Int               @default(300)
+  
+  schedules      ChamberSchedule[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model ChamberSchedule {
+  id         String    @id @default(cuid())
+  chamberId  String
+  chamber    Chamber   @relation(fields: [chamberId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  startTime  String    // e.g. "05:00 PM"
+  endTime    String    // e.g. "09:00 PM"
+  notes      String?   // e.g. "By serial only", "Max 25 patients"
+}
+
